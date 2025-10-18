@@ -46,6 +46,8 @@ const defaultQuotes = [
   { text: "A woman with a voice is, by definition, a strong woman.", category: "Women Empowerment" }
 ];
 
+// Store the currently selected category filter
+let selectedCategory = 'all';
 
 // ============================================
 // LOCAL STORAGE FUNCTIONS
@@ -62,6 +64,91 @@ function loadQuotes() {
     console.log('📦 Initialized with default quotes');
   }
   updateStatistics();
+
+  populateCategories(); // Update categories when quotes change
+}
+
+// ============================================
+// CATEGORY FILTERING FUNCTIONS
+// ============================================
+
+/**
+ * Populate the category dropdown with unique categories from quotes
+ */
+function populateCategories() {
+  const categoryFilter = document.getElementById('categoryFilter');
+  
+  // Get unique categories from quotes array
+  const categories = [...new Set(quotes.map(quote => quote.category))];
+  
+  // Sort categories alphabetically
+  categories.sort();
+  
+  // Store current selection
+  const currentSelection = categoryFilter.value;
+  
+  // Clear existing options (except "All Categories")
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+  
+  // Add each category as an option
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  });
+  
+  // Restore previous selection if it still exists
+  if (currentSelection && (currentSelection === 'all' || categories.includes(currentSelection))) {
+    categoryFilter.value = currentSelection;
+  }
+  
+  console.log('📂 Populated', categories.length, 'categories in dropdown');
+}
+
+/**
+ * Filter quotes based on selected category
+ */
+function filterQuotes() {
+  const categoryFilter = document.getElementById('categoryFilter');
+  selectedCategory = categoryFilter.value;
+  
+  // Save selected category to localStorage
+  localStorage.setItem('selectedCategory', selectedCategory);
+  
+  console.log('🔍 Filtering by category:', selectedCategory);
+  
+  // Show a random quote from the filtered results
+  showRandomQuote();
+}
+
+/**
+ * Get filtered quotes based on selected category
+ */
+function getFilteredQuotes() {
+  if (selectedCategory === 'all') {
+    return quotes;
+  }
+  return quotes.filter(quote => quote.category === selectedCategory);
+}
+
+/**
+ * Load the last selected category from localStorage
+ */
+function loadLastSelectedCategory() {
+  const savedCategory = localStorage.getItem('selectedCategory');
+  
+  if (savedCategory) {
+    selectedCategory = savedCategory;
+    
+    // Set the dropdown to the saved category
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+      categoryFilter.value = savedCategory;
+    }
+    
+    console.log('📌 Restored last selected category:', savedCategory);
+  }
 }
 
 function saveQuotes() {
@@ -120,12 +207,16 @@ function showRandomQuote() {
   // Check if we have any quotes
   if (quotes.length === 0) {
     quoteDisplay.innerHTML = '<div class="empty-state">No quotes available. Add some quotes first!</div>';
+   // Get filtered quotes based on selected category
+  const filteredQuotes = getFilteredQuotes();
+  
+  if (filteredQuotes.length === 0) {
+    quoteDisplay.innerHTML = `<div class="empty-state">No quotes available in the "${selectedCategory}" category. Try another category or add some quotes!</div>`;
     return;
   }
-  
+}
   // Generate a random index number between 0 and quotes.length-1
   const randomIndex = Math.floor(Math.random() * quotes.length);
-  
   // Get the random quote using the random index
   const randomQuote = quotes[randomIndex];
   
@@ -304,8 +395,9 @@ document.addEventListener('DOMContentLoaded', function() {
   addQuoteButton.addEventListener('click', addQuote);
    const importFile = document.getElementById('importFile');
   importFile.addEventListener('change', importFromJsonFile);
-
-  // Allow pressing Enter key in input fields to add quote
+document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+ 
+// Allow pressing Enter key in input fields to add quote
    const inputs = document.querySelectorAll('input[type="text"]');
   inputs.forEach(input => {
     input.addEventListener('keypress', function(event) {
