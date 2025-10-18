@@ -8,19 +8,58 @@
   <body>
     <div class="container">
     <h1>Dynamic Quote Generator</h1>
-    
+     <p class="subtitle">Enhanced with Local Storage & JSON Import/Export</p>
+
+    <!-- Statistics Display -->
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-number" id="totalQuotes">0</div>
+        <div class="stat-label">Total Quotes</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="totalCategories">0</div>
+        <div class="stat-label">Categories</div>
+      </div>
+    </div>
     <!-- Quote Display Area -->
     <div id="quoteDisplay"></div>
     
     <!-- Show New Quote Button -->
     <button id="newQuote">🔄 Show New Quote</button>
-    
+
+    <!-- Data Management Section -->
+    <div class="section">
+      <h2>💾 Data Management</h2>
+      
+      <div class="info-box">
+        <strong>💡 Tip:</strong> Your quotes are automatically saved to your browser's local storage!
+      </div>
+
+      <div class="button-group">
+        <button class="export-btn" id="exportQuotes">📥 Export Quotes (JSON)</button>
+        <button id="clearStorage">🗑️ Clear All Quotes</button>
+      </div>
+
+      <label for="importFile" style="display: block; margin-bottom: 10px; color: #666; font-weight: bold;">
+        📤 Import Quotes from JSON File:
+      </label>
+      <input type="file" id="importFile" accept=".json" />
+    </div>
+
     <!-- Add Quote Section -->
     <div class="add-quote-section">
       <h2>📝 Add Your Own Quote</h2>
       <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
       <input id="newQuoteCategory" type="text" placeholder="Enter quote category (e.g., Motivation, Wisdom)" />
       <button id="addQuoteBtn">➕ Add Quote</button>
+    </div>
+
+    <!-- Session Storage Info -->
+    <div class="section">
+      <h2>📊 Session Information</h2>
+      <div class="info-box" id="sessionInfo">
+        Loading session data...
+      </div>
     </div>
   </div>
 
