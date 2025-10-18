@@ -9,6 +9,14 @@
     <div class="container">
     <h1>Dynamic Quote Generator</h1>
      <p class="subtitle">Enhanced with Local Storage & JSON Import/Export</p>
+     <p class="subtitle">Enhanced with Server Sync & Conflict Resolution</p>
+    
+    <!-- Sync Status Bar -->
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-icon">🔄</span>
+      <span class="sync-text">Ready to sync</span>
+      <button class="sync-btn" id="manualSync">Sync Now</button>
+    </div>
 
     <!-- Statistics Display -->
     <div class="stats">
@@ -32,7 +40,7 @@
         <!-- Categories will be dynamically populated here -->
       </select>
     </div>
-    
+
     <!-- Quote Display Area -->
     <div id="quoteDisplay"></div>
     
@@ -75,6 +83,9 @@
     </div>
   </div>
 
+   <!-- Notification Container -->
+  <div id="notificationContainer"></div>
+  
   <!-- Link to JavaScript file -->
   <script src="script.js"></script>
 </body>
