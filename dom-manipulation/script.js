@@ -127,7 +127,17 @@ function addQuote() {
   console.log('📚 Total quotes now:', quotes.length);
 
 // ============================================
-// STEP 4: SET UP EVENT LISTENERS
+// STEP 4: FUNCTION TO CREATE ADD QUOTE FORM
+// ============================================
+
+function createAddQuoteForm() {
+  
+  console.log('ℹ️ Add quote form is already in HTML');
+}
+
+
+// ============================================
+// STEP 5: SET UP EVENT LISTENERS
 // ============================================
 
 
@@ -159,4 +169,30 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   console.log('✅ Event listeners set up successfully!');
-})}
+});
+
+
+// ============================================
+// ADDITIONAL HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Function to get all unique categories from quotes
+ */
+function getCategories() {
+  const categories = quotes.map(quote => quote.category);
+  return [...new Set(categories)]; // Remove duplicates
+}
+
+/**
+ * Function to filter quotes by category
+ */
+function getQuotesByCategory(category) {
+  return quotes.filter(quote => quote.category === category);
+}
+
+// Log available categories when page loads
+setTimeout(() => {
+  console.log('📂 Available categories:', getCategories());
+}, 1000);
+}
