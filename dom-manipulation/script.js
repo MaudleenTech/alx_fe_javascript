@@ -677,7 +677,7 @@ function updateStatistics() {
 }
 
 // ============================================
-// ADD QUOTE FUNCTION
+// FUNCTION TO ADD NEW QUOTE
 // ============================================
 
 function addQuote() {
