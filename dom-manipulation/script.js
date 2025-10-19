@@ -75,9 +75,10 @@ function showRandomQuote() {
   quoteDisplay.appendChild(quoteCategory);
   
   console.log('✅ Displayed quote:', randomQuote);
-},
+}
 
-];// INITIAL QUOTES DATA
+];
+// INITIAL QUOTES DATA
 // ============================================
 
 // Server URL for syncing (using JSONPlaceholder as mock API)
