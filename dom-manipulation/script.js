@@ -77,87 +77,6 @@ function showRandomQuote() {
   console.log('✅ Displayed quote:', randomQuote);
 },
 
-
-// ============================================
-// STEP 3: FUNCTION TO ADD NEW QUOTES
-// ============================================
-
-/**
- * This function adds a new quote to the quotes array
- * It gets values from the input fields and creates a new quote object
- */
-function addQuote() {
-  // GET the input elements by their IDs
-  const newQuoteText = document.getElementById('newQuoteText');
-  const newQuoteCategory = document.getElementById('newQuoteCategory');
-  
-  // GET the values that the user typed
-  const quoteText = newQuoteText.value.trim();
-  const quoteCategory = newQuoteCategory.value.trim();
-  
-  // VALIDATE: Check if both fields have content
-  if (quoteText === '' || quoteCategory === '') {
-    alert('⚠️ Please fill in both the quote text and category!');
-    return;
-  }
-  
-  // CREATE a new quote object
-  const newQuote = {
-    text: quoteText,
-    category: quoteCategory
-  };
-  
-  // ADD the new quote to our quotes array
-  quotes.push(newQuote);
-  
-  // CLEAR the input fields (reset them)
-  newQuoteText.value = '';
-  newQuoteCategory.value = '';
-  
-  // Show success message
-  alert(`✅ Quote added successfully! Total quotes: ${quotes.length}`);
-  
-  // Automatically show the newly added quote
-  showRandomQuote();
-  
-  console.log('✅ New quote added:', newQuote);
-  console.log('📚 Total quotes now:', quotes.length);
-
-// ============================================
-// STEP 4: SET UP EVENT LISTENERS
-// ============================================
-
-
-// Wait for the DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Quote Generator Initialized!');
-  console.log('📚 Starting with', quotes.length, 'quotes');
-  
-  // GET the "Show New Quote" button
-  const newQuoteButton = document.getElementById('newQuote');
-  
-  // ADD a click event listener to it
-  newQuoteButton.addEventListener('click', showRandomQuote);
-  
-  // GET the "Add Quote" button
-  const addQuoteButton = document.getElementById('addQuoteBtn');
-  
-  // ADD a click event listener to it
-  addQuoteButton.addEventListener('click', addQuote);
-  
-  // Allow pressing Enter key in input fields to add quote
-  const inputs = document.querySelectorAll('input');
-  inputs.forEach(input => {
-    input.addEventListener('keypress', function(event) {
-      if (event.key === 'Enter') {
-        addQuote();
-      }
-    });
-  });
-  
-  console.log('✅ Event listeners set up successfully!');
-})}
-
 ];// INITIAL QUOTES DATA
 // ============================================
 
@@ -805,7 +724,7 @@ function updateStatistics() {
 // FUNCTION TO ADD NEW QUOTE
 // ============================================
 
-function addQuote() {
+function createAddQuoteForm() {
   const newQuoteText = document.getElementById('newQuoteText');
   const newQuoteCategory = document.getElementById('newQuoteCategory');
 
