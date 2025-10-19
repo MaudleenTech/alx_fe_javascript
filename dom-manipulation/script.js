@@ -32,8 +32,8 @@ let quotes = [
   {
     text: "A woman with a voice is, by definition, a strong woman.",
     category: "Women Empowerment"
-  }
-  // ============================================
+  },
+// ============================================
 // STEP 2: FUNCTION TO SHOW A RANDOM QUOTE
 // ============================================
 
@@ -75,7 +75,7 @@ function showRandomQuote() {
   quoteDisplay.appendChild(quoteCategory);
   
   console.log('✅ Displayed quote:', randomQuote);
-}
+},
 
 
 // ============================================
