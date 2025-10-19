@@ -318,14 +318,17 @@ async function postQuoteToServer(quote) {
     const data = await response.json();
     console.log('✅ Successfully posted to server:', data);
     
+     console.log('Quotes synced with server!');
+
     showNotification(
       'Quote Synced',
+      'Quotes synced with server!',
       'Your quote has been posted to the server.',
       'success'
     );
-    
+
     return data;
-    
+
   } catch (error) {
     console.error('❌ Error posting to server:', error);
     showNotification(
@@ -340,37 +343,43 @@ async function postQuoteToServer(quote) {
 /**
  * Sync local quotes with server quotes
  * Implements conflict resolution strategy
+ * REQUIRED: Main sync function that handles server data synchronization
  */
 async function syncQuotes() {
   if (isSyncing) {
     console.log('⏳ Sync already in progress, skipping...');
     return;
   }
-  
+
   isSyncing = true;
   updateSyncStatus('syncing', 'Syncing with server...');
-  
+
   try {
-    // Fetch quotes from server
     console.log('🔄 Starting sync process...');
+
+    // Step 1: Fetch quotes from server
     const serverQuotes = await fetchQuotesFromServer();
-    
-    // Get local quotes
+    console.log('📥 Received', serverQuotes.length, 'quotes from server');
+
+    // Step 2: Get current local quotes
     const localQuotes = [...quotes];
     console.log('💾 Current local quotes:', localQuotes.length);
-    
-    // Detect conflicts and merge
+
+    // Step 3: Detect conflicts and merge data
     const result = resolveConflicts(localQuotes, serverQuotes);
-    
+
+    // Step 4: Handle conflicts - notify user
     if (result.conflicts.length > 0) {
-         console.log('⚠️ Conflicts detected:', result.conflicts.length);
+      console.log('⚠️ Conflicts detected:', result.conflicts.length);
+      console.log('Quotes synced with server!');
       showNotification(
         'Conflicts Resolved',
+        'Quotes synced with server!',
         `${result.conflicts.length} conflict(s) resolved. Server data took precedence.`,
         'warning'
       );
-      console.log('⚠️ Resolved', result.conflicts.length, 'conflicts');
-       // Log each conflict for debugging
+
+      // Log each conflict for debugging
       result.conflicts.forEach(conflict => {
         console.log('⚠️ Conflict:', {
           text: conflict.text,
@@ -378,48 +387,65 @@ async function syncQuotes() {
           server: conflict.serverCategory
         });
       });
-    
     }
-    
+
+    // Step 5: Handle new quotes from server
     if (result.newQuotes.length > 0) {
-         console.log('✅ New quotes from server:', result.newQuotes.length);
+      console.log('✅ New quotes from server:', result.newQuotes.length);
       showNotification(
         'New Quotes Added',
         `${result.newQuotes.length} new quote(s) synced from server.`,
+        'Quotes synced with server!',
+        `${result.newQuotes.length} new quote(s) added from server.`,
         'success'
       );
-      console.log('✅ Added', result.newQuotes.length, 'new quotes from server');
     }
-    
-    // Update local quotes with merged data
+
+    // Step 6: Update local quotes array with merged data
     quotes = result.mergedQuotes;
-    saveQuotes();
-     console.log('📊 Total quotes after merge:', quotes.length);
-    // Update UI
-     localStorage.setItem('quotes', JSON.stringify(quotes));
+    console.log('📊 Total quotes after merge:', quotes.length);
+
+    // Step 7: Update localStorage with merged data (includes conflict resolution)
+    localStorage.setItem('quotes', JSON.stringify(quotes));
     console.log('💾 localStorage updated with server data and conflict resolution');
+
+    // Step 8: Update statistics
     updateStatistics();
+
+    // Step 9: Update UI with new categories
     populateCategories();
+
+    // Step 10: Show a quote if display is empty
     if (quotes.length > 0 && document.getElementById('quoteDisplay').innerHTML.includes('empty-state')) {
       showRandomQuote();
     }
-    
-    // Update last sync time
+
+    // Step 11: Update last sync time
     lastSyncTime = new Date();
     localStorage.setItem('lastSyncTime', lastSyncTime.toISOString());
     console.log('⏰ Last sync time updated:', lastSyncTime.toLocaleString());
+
+    // Step 12: Update UI status
     updateSyncStatus('success', `Last synced: ${formatTime(lastSyncTime)}`);
-    
+
+    // Step 13: Notify user if everything is up to date
     if (result.conflicts.length === 0 && result.newQuotes.length === 0) {
-         console.log('✅ No changes - already up to date');
+      console.log('✅ No changes - already up to date');
       showNotification(
         'Up to Date',
+        'Quotes synced with server!',
         'Your quotes are already in sync with the server.',
         'info'
       );
     }
+
     console.log('✅ Sync completed successfully');
 
+    // Always show sync success notification
+    if (result.newQuotes.length > 0 || result.conflicts.length > 0) {
+      console.log('Quotes synced with server!');
+    }
+    
   } catch (error) {
     console.error('❌ Sync failed:', error);
     updateSyncStatus('error', 'Sync failed. Will retry...');
@@ -436,67 +462,73 @@ async function syncQuotes() {
 /**
  * Resolve conflicts between local and server data
  * Strategy: Server data takes precedence
+ * REQUIRED: Handles conflict resolution and updates localStorage
  */
 function resolveConflicts(localQuotes, serverQuotes) {
-     console.log('🔍 Checking for conflicts...');
+  console.log('🔍 Checking for conflicts...');
   console.log('📊 Local quotes:', localQuotes.length);
   console.log('📊 Server quotes:', serverQuotes.length);
 
   const conflicts = [];
   const newQuotes = [];
   const mergedQuotes = [...localQuotes];
-  
+
   serverQuotes.forEach(serverQuote => {
-    // Check if quote exists locally (by comparing text)
+    // Check if quote exists locally (by comparing normalized text)
     const localIndex = mergedQuotes.findIndex(
       local => normalizeText(local.text) === normalizeText(serverQuote.text)
     );
-    
+
     if (localIndex !== -1) {
       // Quote exists locally - check for conflicts
       const localQuote = mergedQuotes[localIndex];
-      
+
       if (localQuote.category !== serverQuote.category) {
-        // Conflict detected: categories differ
+        // CONFLICT DETECTED: Same quote text, different categories
         console.log('⚠️ CONFLICT FOUND:');
         console.log('   Text:', serverQuote.text.substring(0, 50) + '...');
         console.log('   Local category:', localQuote.category);
         console.log('   Server category:', serverQuote.category);
         console.log('   Resolution: Server data takes precedence');
+
         conflicts.push({
           text: serverQuote.text,
           localCategory: localQuote.category,
-          serverCategory: serverQuote.category
-           resolution: 'server-wins'
+          serverCategory: serverQuote.category,
+          resolution: 'server-wins'
         });
-        
-        // Server takes precedence
+
+        // CONFLICT RESOLUTION: Server takes precedence
+        // Update local storage with server data
         mergedQuotes[localIndex] = {
           ...localQuote,
-          ...serverQuote
+          ...serverQuote,
           conflictResolved: true,
           resolvedAt: new Date().toISOString()
         };
-      }
-      console.log('✅ Conflict resolved - updated to server version');
+
+        console.log('✅ Conflict resolved - updated to server version');
       } else {
         console.log('✓ Quote already synced:', serverQuote.text.substring(0, 30) + '...');
+      }
     } else {
-         console.log('🆕 New quote from server:', serverQuote.text.substring(0, 50) + '...');
-      // New quote from server
+      // New quote from server - doesn't exist locally
+      console.log('🆕 New quote from server:', serverQuote.text.substring(0, 50) + '...');
       newQuotes.push(serverQuote);
       mergedQuotes.push(serverQuote);
     }
   });
+
   console.log('📊 Conflict Resolution Summary:');
   console.log('   Conflicts found:', conflicts.length);
   console.log('   New quotes:', newQuotes.length);
   console.log('   Total merged quotes:', mergedQuotes.length);
-  
+
+  // Return results with conflict resolution details
   return {
-    mergedQuotes,
-    conflicts,
-    newQuotes
+    mergedQuotes,     // Data ready for localStorage update
+    conflicts,        // List of resolved conflicts
+    newQuotes        // List of new quotes from server
   };
 }
 
@@ -513,7 +545,7 @@ function normalizeText(text) {
 function formatTime(date) {
   const now = new Date();
   const diff = Math.floor((now - date) / 1000); // seconds
-  
+
   if (diff < 60) return 'just now';
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
@@ -522,21 +554,38 @@ function formatTime(date) {
 
 /**
  * Start automatic periodic sync
+ * REQUIRED: Periodically checks for new quotes from the server
  */
 function startPeriodicSync() {
-  // Initial sync
-  setTimeout(() => {
-    syncQuotes();
-  }, 2000); // Wait 2 seconds after page load
   console.log('🔄 Initializing periodic sync system...');
   console.log('⏰ Sync interval set to:', SYNC_INTERVAL / 1000, 'seconds');
-  
-  // Periodic sync every 30 seconds
-  setInterval(() => {
+
+  // Initial sync after 2 seconds (let page load first)
+  console.log('⏳ Scheduling initial sync in 2 seconds...');
+  setTimeout(() => {
+    console.log('🚀 Running initial sync...');
     syncQuotes();
+  }, 2000);
+
+  // Periodic sync - check for new quotes from server every SYNC_INTERVAL
+  console.log('📅 Setting up periodic sync checks...');
+  syncIntervalId = setInterval(() => {
+    console.log('⏰ Periodic sync triggered');
+    console.log('📡 Checking for new quotes from server...');
+    syncQuotes(); // This function periodically checks the server
   }, SYNC_INTERVAL);
-  
-  console.log('🔄 Automatic sync started (every', SYNC_INTERVAL / 1000, 'seconds)');
+
+  console.log('✅ Automatic periodic sync started');
+  console.log('🔄 Will check server every', SYNC_INTERVAL / 1000, 'seconds for new quotes');
+
+  // Show notification about auto-sync
+  setTimeout(() => {
+    showNotification(
+      'Auto-Sync Enabled',
+      `Automatically checking server every ${SYNC_INTERVAL / 1000} seconds for updates.`,
+      'info'
+    );
+  }, 3000);
 }
 
 /**
@@ -573,7 +622,7 @@ function loadSessionInfo() {
 function updateSessionInfo() {
   const sessionInfo = loadSessionInfo();
   const infoBox = document.getElementById('sessionInfo');
-  
+
   if (sessionInfo) {
     infoBox.innerHTML = `
       <strong>Last Viewed Quote:</strong><br>
@@ -585,53 +634,40 @@ function updateSessionInfo() {
     infoBox.innerHTML = '<em>No quotes viewed in this session yet.</em>';
   }
 }
+
 // ============================================
-// STEP 2: FUNCTION TO SHOW A RANDOM QUOTE
+// DISPLAY FUNCTIONS
 // ============================================
 
-/**
- * This function displays a random quote from our quotes array
- * It uses DOM manipulation to create and display the quote
- */
 function showRandomQuote() {
-  // Get the display area element by its ID
   const quoteDisplay = document.getElementById('quoteDisplay');
-  
-  // Check if we have any quotes
-  if (quotes.length === 0) {
-    quoteDisplay.innerHTML = '<div class="empty-state">No quotes available. Add some quotes first!</div>';
-   // Get filtered quotes based on selected category
+
+  // Get filtered quotes based on selected category
   const filteredQuotes = getFilteredQuotes();
-  
+
   if (filteredQuotes.length === 0) {
     quoteDisplay.innerHTML = `<div class="empty-state">No quotes available in the "${selectedCategory}" category. Try another category or add some quotes!</div>`;
     return;
   }
-}
-  // Generate a random index number between 0 and quotes.length-1
-  const randomIndex = Math.floor(Math.random() * quotes.length);
-  // Get the random quote using the random index
-  const randomQuote = quotes[randomIndex];
-  
-  // CLEAR the previous content
+
+  const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
+  const randomQuote = filteredQuotes[randomIndex];
+
   quoteDisplay.innerHTML = '';
-  
-  // CREATE a new paragraph element for the quote text
+
   const quoteText = document.createElement('p');
   quoteText.className = 'quote-text';
   quoteText.textContent = `"${randomQuote.text}"`;
-  
-  // CREATE a new paragraph element for the category
+
   const quoteCategory = document.createElement('p');
   quoteCategory.className = 'quote-category';
   quoteCategory.textContent = `— Category: ${randomQuote.category}`;
-  
-  // APPEND both elements to the display area
+
   quoteDisplay.appendChild(quoteText);
   quoteDisplay.appendChild(quoteCategory);
-  
-   saveLastViewedQuote(randomQuote);
-  console.log('✅ Displayed quote:', randomQuote);
+
+  saveLastViewedQuote(randomQuote);
+  console.log('✅ Displayed quote from', selectedCategory === 'all' ? 'all categories' : selectedCategory + ' category', ':', randomQuote);
 }
 
 function updateStatistics() {
@@ -641,56 +677,46 @@ function updateStatistics() {
 }
 
 // ============================================
-// STEP 3: FUNCTION TO ADD NEW QUOTES
+// ADD QUOTE FUNCTION
 // ============================================
 
-/**
- * This function adds a new quote to the quotes array
- * It gets values from the input fields and creates a new quote object
- */
 function addQuote() {
-  // GET the input elements by their IDs
   const newQuoteText = document.getElementById('newQuoteText');
   const newQuoteCategory = document.getElementById('newQuoteCategory');
-  
-  // GET the values that the user typed
+
   const quoteText = newQuoteText.value.trim();
   const quoteCategory = newQuoteCategory.value.trim();
-  
-  // VALIDATE: Check if both fields have content
+
   if (quoteText === '' || quoteCategory === '') {
     alert('⚠️ Please fill in both the quote text and category!');
     return;
   }
-  
-  // CREATE a new quote object
-  const newQuote = {
-    text: quoteText,
-    category: quoteCategory
-  };
-  
-  // ADD the new quote to our quotes array
+
+  const newQuote = { text: quoteText, category: quoteCategory };
   quotes.push(newQuote);
-  
-  // CLEAR the input fields (reset them)
-  saveQuotes();
-// Post new quote to server (demonstrates POST to mock API)
+
+  saveQuotes(); // This will also call populateCategories()
+
+  // Post new quote to server (demonstrates POST to mock API)
   postQuoteToServer(newQuote).catch(error => {
     console.log('Note: Server POST failed (expected with mock API)');
   });
+
   newQuoteText.value = '';
   newQuoteCategory.value = '';
-  
-  // Show success message
-  alert(`✅ Quote added successfully! Total quotes: ${quotes.length}`);
-  
-  // Automatically show the newly added quote
-  showRandomQuote();
-  
-  console.log('✅ New quote added:', newQuote);
-  console.log('📚 Total quotes now:', quotes.length);
 
-  // ============================================
+  alert(`✅ Quote added successfully! Total quotes: ${quotes.length}`);
+
+  // If the new category matches current filter or filter is "all", show the new quote
+  if (selectedCategory === 'all' || selectedCategory === quoteCategory) {
+    showRandomQuote();
+  }
+
+  console.log('✅ New quote added:', newQuote);
+  console.log('📂 Categories updated in dropdown');
+}
+
+// ============================================
 // JSON EXPORT FUNCTION
 // ============================================
 
@@ -705,53 +731,52 @@ function exportToJsonFile() {
   downloadLink.click();
   document.body.removeChild(downloadLink);
   URL.revokeObjectURL(url);
-  
+
   console.log('📥 Exported', quotes.length, 'quotes to JSON file');
   alert('✅ Quotes exported successfully!');
 }
 
 // ============================================
-// STEP 4: FUNCTION TO CREATE ADD QUOTE FORM
+// JSON IMPORT FUNCTION
 // ============================================
 
-function createAddQuoteForm() {
-  function importFromJsonFile(event) {
+function importFromJsonFile(event) {
   const fileReader = new FileReader();
-   fileReader.onload = function(event) {
+
+  fileReader.onload = function(event) {
     try {
       const importedQuotes = JSON.parse(event.target.result);
-      
+
       if (!Array.isArray(importedQuotes)) {
         alert('❌ Invalid file format. Expected an array of quotes.');
         return;
       }
-      
+
       const validQuotes = importedQuotes.filter(q => q.text && q.category);
-      
+
       if (validQuotes.length === 0) {
         alert('❌ No valid quotes found in the file.');
         return;
       }
-      
+
       quotes.push(...validQuotes);
-      saveQuotes();
+      saveQuotes(); // This will also update categories
       showRandomQuote();
-      
+
       alert(`✅ Successfully imported ${validQuotes.length} quotes!`);
       console.log('📤 Imported', validQuotes.length, 'quotes from JSON file');
+      console.log('📂 Categories dropdown updated with new categories');
     } catch (error) {
       alert('❌ Error reading file. Please ensure it\'s a valid JSON file.');
       console.error('Import error:', error);
     }
   };
-  console.log('ℹ️ Add quote form is already in HTML');
- fileReader.readAsText(event.target.files[0]);
-}
-}
 
+  fileReader.readAsText(event.target.files[0]);
+}
 
 // ============================================
-// STEP 5: SET UP EVENT LISTENERS
+// CLEAR STORAGE FUNCTION
 // ============================================
 
 function clearAllQuotes() {
@@ -764,37 +789,30 @@ function clearAllQuotes() {
   }
 }
 
+// ============================================
+// EVENT LISTENERS SETUP
+// ============================================
 
-// Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Quote Generator Initialized!');
-  console.log('📚 Starting with', quotes.length, 'quotes');
-  
-  // GET the "Show New Quote" button
-  const newQuoteButton = document.getElementById('newQuote');
   console.log('🚀 Quote Generator with Storage Initialized!');
-  
-  // ADD a click event listener to it
-  newQuoteButton.addEventListener('click', showRandomQuote);
-  
+
   loadQuotes();
+  populateCategories(); // Populate category dropdown
+  loadLastSelectedCategory(); // Restore last selected filter
   updateSessionInfo();
 
-  // GET the "Add Quote" button
-  const addQuoteButton = document.getElementById('addQuoteBtn');
-   document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+  document.getElementById('newQuote').addEventListener('click', showRandomQuote);
   document.getElementById('addQuoteBtn').addEventListener('click', addQuote);
   document.getElementById('exportQuotes').addEventListener('click', exportToJsonFile);
   document.getElementById('clearStorage').addEventListener('click', clearAllQuotes);
 
-  // ADD a click event listener to it
-  addQuoteButton.addEventListener('click', addQuote);
-   const importFile = document.getElementById('importFile');
+  // Add event listener for category filter
+  document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+
+  const importFile = document.getElementById('importFile');
   importFile.addEventListener('change', importFromJsonFile);
-document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
- 
-// Allow pressing Enter key in input fields to add quote
-   const inputs = document.querySelectorAll('input[type="text"]');
+
+  const inputs = document.querySelectorAll('input[type="text"]');
   inputs.forEach(input => {
     input.addEventListener('keypress', function(event) {
       if (event.key === 'Enter') {
@@ -802,33 +820,7 @@ document.getElementById('categoryFilter').addEventListener('change', filterQuote
       }
     });
   });
-  
-  console.log('✅ Event listeners set up successfully!');
+
   console.log('✅ All event listeners set up successfully!');
+  console.log('🔍 Current filter:', selectedCategory);
 });
-
-
-// ============================================
-// ADDITIONAL HELPER FUNCTIONS
-// ============================================
-
-/**
- * Function to get all unique categories from quotes
- */
-function getCategories() {
-  const categories = quotes.map(quote => quote.category);
-  return [...new Set(categories)]; // Remove duplicates
-}
-
-/**
- * Function to filter quotes by category
- */
-function getQuotesByCategory(category) {
-  return quotes.filter(quote => quote.category === category);
-}
-
-// Log available categories when page loads
-setTimeout(() => {
-  console.log('📂 Available categories:', getCategories());
-}, 1000);
-}
